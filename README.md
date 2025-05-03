@@ -68,4 +68,3 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 ---
 
 **Note**: This script modifies core Termux files. Use with caution and always maintain backups.
-```
