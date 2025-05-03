@@ -2,8 +2,6 @@
 
 A powerful Bash script to manage Termux environments, package managers, backups, and development setups.
 
-![Termux Logo](https://termux.dev/images/termux-logo.png)
-
 ## Features
 
 - 🔄 Switch between **apt** and **pacman** package managers
@@ -58,11 +56,6 @@ Select a choice:
 - Internet connection
 - Storage permissions (for backups)
 - jq (will be installed automatically if missing)
-
-## Screenshots
-
-![Main Menu](screenshots/menu.png)  
-*Main menu interface*
 
 ## Contributing
 
