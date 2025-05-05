@@ -55,8 +55,8 @@ select a choice:
 
 - Termux app
 - Internet connection
-- Storage permissions (for backups)
-- jq (will be installed automatically if missing)
+- will automatically grant Storage permission
+- will automatically install missing packages
 
 ## Contributing
 
