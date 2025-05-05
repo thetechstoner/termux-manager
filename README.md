@@ -7,8 +7,8 @@ A powerful Bash script to manage Termux environments, package managers, backups,
 - 🔄 Switch between **apt** and **pacman** package managers
 - 💾 Backup & restore Termux environments
 - 🛠️ Setup complete development environment
+- 🛠️ Setup complete gui environment
 - 📦 Add extra repositories (TUR, glibc, X11, root)
-- 🖥️ Configure build environment variables
 - 📱 Supports all Termux architectures (arm, aarch64, x86, x86_64)
 
 ## Installation
