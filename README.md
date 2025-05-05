@@ -48,7 +48,7 @@ select a choice:
 
 ### GUI Environment
 - Installs termux-x11 app
-- choose graphical environment
+- Configures graphical environment
 - Installs required packages
 
 ### Build Environment
