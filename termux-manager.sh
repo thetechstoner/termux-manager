@@ -96,7 +96,7 @@ install_repos() {
     # Check for tur-repo
     [[ " ${repos} " == *" tur-repo "* ]] && {
         # Commands to run for tur-repo
-        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
         # pacman.conf exists
         else
         pkg install -y tur-repo
@@ -105,7 +105,7 @@ install_repos() {
     # Check for glibc-repo
     [[ " ${repos} " == *" glibc-repo "* ]] && {
         # Commands to run for glibc-repo
-        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
         # pacman.conf exists
         else
         pkg install -y glibc-repo
@@ -114,7 +114,7 @@ install_repos() {
     # Check for x11-repo
     [[ " ${repos} " == *" x11-repo "* ]] && {
         # Commands to run for x11-repo
-        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
         # pacman.conf exists
         else
         pkg install -y x11-repo
@@ -123,7 +123,7 @@ install_repos() {
     # Check for root-repo
     [[ " ${repos} " == *" root-repo "* ]] && {
         # Commands to run for root-repo
-        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
         # pacman.conf exists
         else
         pkg install -y root-repo
@@ -228,7 +228,6 @@ while true; do
             case $option in
                 1)
                     install_if_missing xorg-twm aterm
-                    # set/update TERMUX_X11_XSTARTUP
                     set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm"
                     echo "Tab Window Manager installed. Run 'termux-x11 :1' to start."
                     read -p "Press Enter to start Tab Window Manager"
@@ -390,6 +389,9 @@ https://github.com/termux-user-repository/tur
 
 termux-pacman service repositories
 https://service.termux-pacman.dev/
+
+AUR - Termux Wiki
+https://wiki.termux.com/wiki/AUR
 
 Remote Access - Termux Wiki
 https://wiki.termux.com/wiki/Remote_Access
