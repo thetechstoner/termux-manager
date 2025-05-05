@@ -44,7 +44,7 @@ select a choice:
 
 ### Backup/Restore
 - Creates compressed backups in `/sdcard/termux-backup.tar.gz`
-- Restores complete environments
+- Restores complete environments in `/sdcard/termux-backup.tar.gz`
 
 ### GUI Environment
 - Installs termux-x11 app
