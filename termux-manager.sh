@@ -5,18 +5,93 @@ check_storage() {
     termux-setup-storage
   fi
 }
-check_jq() {
-  if ! command -v jq &> /dev/null; then
-    echo "jq is not installed. Installing now..."
-    if pkg update -y && pkg install -y jq; then
-      echo "jq installed successfully."
-    else
-      echo "Failed to install jq. check package manager or network connection."
-      exit 1
+install_if_missing() {
+    # Enable x11-repo if any package requires it
+    local enable_x11=false
+    
+    # First check all packages to see if x11-repo is needed
+    for pkg in "$@"; do
+        if [[ "$pkg" == *"x11"* ]] || (pkg show "$pkg" 2>/dev/null | grep -q "x11-repo"); then
+            enable_x11=true
+            break
+        fi
+    done
+    
+    # Enable x11-repo if needed and not already enabled
+    if $enable_x11 && ! pkg repo | grep -q "x11-repo"; then
+        echo "Enabling x11-repo..."
+        pkg install -y x11-repo || {
+            echo "Failed to install x11-repo" >&2
+            return 1
+        }
+        pkg update || {
+            echo "Failed to update packages" >&2
+            return 1
+        }
     fi
-  else
-    echo "jq is already installed."
-  fi
+    
+    # Install all missing packages
+    local pkg
+    for pkg in "$@"; do
+        if ! pkg list-installed | grep -qw "^$pkg$"; then
+            echo "Installing $pkg..."
+            pkg install -y "$pkg" || {
+                echo "Failed to install $pkg" >&2
+                return 1
+            }
+        else
+            echo "$pkg is already installed"
+        fi
+    done
+}
+install_termux_x11() {
+    # install Termux-X11 APK
+    local error arch TARGET_ARCH API_URL APK_URL FILENAME
+    
+    error=$(cd /data/data/com.termux.x11 2>&1 >/dev/null)
+    if [[ $error == *"No such file or directory"* ]]; then
+        arch=$(uname -m)
+        case "$arch" in
+            "aarch64"|"arm64") TARGET_ARCH="arm64-v8a" ;;
+            "armv7l"|"armhf") TARGET_ARCH="armeabi-v7a" ;;
+            "i386"|"i686")    TARGET_ARCH="x86" ;;
+            "x86_64")         TARGET_ARCH="x86_64" ;;
+            *)
+                echo "Unsupported architecture: $arch"
+                return 1
+                ;;
+        esac
+        # Get latest release URL
+        API_URL="https://api.github.com/repos/termux/termux-x11/releases/latest"
+        APK_URL=$(curl -s "$API_URL" | grep -o "https://.*app-${TARGET_ARCH}-debug.apk")
+        if [ -z "$APK_URL" ]; then
+            echo "Error: APK not found for $TARGET_ARCH"
+            return 1
+        fi
+        FILENAME="termux-x11-${TARGET_ARCH}-debug.apk"
+        wget "$APK_URL" -O "$FILENAME"
+        termux-open "$FILENAME" # Opens in Termux package installer
+    fi
+}
+set_or_update_bashrc_var() {
+    local var_name="$1"
+    local var_value="$2"
+    local bashrc_file="$HOME/.bashrc"
+    local export_line="export $var_name=\"$var_value\""
+
+    # Check if the variable is already defined in ~/.bashrc
+    if grep -q "^export $var_name=" "$bashrc_file"; then
+        # Update existing variable
+        sed -i "s|^export $var_name=.*|$export_line|" "$bashrc_file"
+        echo "Updated $var_name in $bashrc_file"
+    else
+        # Append new variable
+        echo "$export_line" >> "$bashrc_file"
+        echo "Added $var_name to $bashrc_file"
+    fi
+
+    # apply changes immediately
+    source "$bashrc_file"
 }
 download_bootstrap() {
   if [ -n "$latest_url" ]; then
@@ -57,9 +132,10 @@ while true; do
     echo "1) Restore Termux backup"
     echo "2) Backup Termux"
     echo "3) switch package manager in termux"
-    echo "4) Setup Build Environment"
-    echo "5) Add Repositories to Termux"
-    echo "6) Exit"
+    echo "4) Setup Termux GUI"
+    echo "5) Setup Build Environment"
+    echo "6) Add Repositories to Termux"
+    echo "7) Exit"
     read -p "Enter number of choice: " choice
     case $choice in
         1)
@@ -83,28 +159,108 @@ while true; do
             read -p "Enter number of option: " option
             case $option in
                 1)
-                check_jq
-                latest_url=$(curl -s https://api.github.com/repos/termux/termux-packages/releases/latest | jq -r ".assets[] | select(.name | test(\"bootstrap-${arch}.*\\\\.zip\")) | .browser_download_url")
-                download_bootstrap
-                unzip_bootstrap
-                switchpkgmanager
-                ;;
+                    install_if_missing jq
+                    latest_url=$(curl -s https://api.github.com/repos/termux/termux-packages/releases/latest | jq -r ".assets[] | select(.name | test(\"bootstrap-${arch}.*\\\\.zip\")) | .browser_download_url")
+                    download_bootstrap
+                    unzip_bootstrap
+                    switchpkgmanager
+                    ;;
                 2)
-                check_jq
-                latest_url=$(curl -s https://api.github.com/repos/termux-pacman/termux-packages/releases/latest | jq -r ".assets[] | select(.name | test(\"bootstrap-${arch}.*\\\\.zip\")) | .browser_download_url")
-                download_bootstrap
-                unzip_bootstrap
-                switchpkgmanager
-                ;;
+                    install_if_missing jq
+                    latest_url=$(curl -s https://api.github.com/repos/termux-pacman/termux-packages/releases/latest | jq -r ".assets[] | select(.name | test(\"bootstrap-${arch}.*\\\\.zip\")) | .browser_download_url")
+                    download_bootstrap
+                    unzip_bootstrap
+                    switchpkgmanager
+                    ;;
                 *)
-                echo "Invalid option"
-                ;;
+                    echo "Invalid option"
+                    ;;
             esac
             read -p "Press Enter to return to main menu"
             ;;
-        4)
+        4)  
+            check_storage
+            install_if_missing curl wget termux-x11-nightly
+            install_termux_x11
+            echo "Termux GUI Setup"
+            echo "Choose option:"
+            echo "1) Tab Window Manager (xorg-twm)"
+            echo "2) Window Manager (Fluxbox or Openbox)"
+            echo "3) Desktop environment (XFCE, LXQt or MATE)"
+            read -p "Enter number of option: " option
+            case $option in
+                1)
+                    install_if_missing xorg-twm aterm
+                    # set/update TERMUX_X11_XSTARTUP
+                    set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm &"
+                    echo "Tab Window Manager installed. Run 'termux-x11 &' to start."
+                    read -p "Press Enter to start Tab Window Manager"
+                    termux-x11 &
+                    ;;
+                2)
+                    echo "Choose Window Manager:"
+                    echo "1) Fluxbox (Lightweight, fast)"
+                    echo "2) Openbox (Highly customizable)"
+                    read -p "Enter your choice: " wm_choice
+                    case $wm_choice in
+                        1)
+                            install_if_missing fluxbox aterm
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "fluxbox & aterm &"
+                            echo "Fluxbox installed. Run 'termux-x11 &' to start."
+                            read -p "Press Enter to start Fluxbox Window Manager"
+                            termux-x11 &
+                            ;;
+                        2)
+                            install_if_missing openbox aterm obconf
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm &"
+                            echo "Openbox installed. Run 'termux-x11 &' to start."
+                            read -p "Press Enter to start Openbox Window Manager"
+                            termux-x11 &
+                            ;;
+                        *)
+                            echo "Invalid choice. Returning to main menu."
+                            ;;
+                    esac
+                    ;;
+                3)
+                    echo "Choose Desktop Environment:"
+                    echo "1) XFCE (Lightweight, traditional)"
+                    echo "2) LXQt (Fast, Qt-based)"
+                    echo "3) MATE (GNOME 2 fork, classic)"
+                    read -p "Enter your choice: " de_choice
+                    case $de_choice in
+                        1) # XFCE
+                            install_if_missing xfce4 xfce4-terminal xfce4-goodies
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startxfce4 &"
+                            echo "XFCE installed. Run 'termux-x11 &' to start."
+                            read -p "Press Enter to start XFCE"
+                            termux-x11 &
+                            ;;
+                        2) # LXQt
+                            install_if_missing lxqt qterminal
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startlxqt &"
+                            echo "LXQt installed. Run 'termux-x11 &' to start."
+                            read -p "Press Enter to start LXQt"
+                            termux-x11 &
+                            ;;
+                        3) # MATE
+                            install_if_missing mate-desktop mate-terminal
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "mate-session &"
+                            echo "MATE installed. Run 'termux-x11 &' to start."
+                            read -p "Press Enter to start MATE"
+                            termux-x11 &
+                            ;;
+                    esac
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            read -p "Press Enter to return to main menu"
+            ;;
+        5)
             pkg update -y
-            pkg install proot-distro ldd liblzma openssl which tree mtd-utils lzop sleuthkit cabextract p7zip lhasa arj cmake rust git wget nodejs autoconf automake python-pip python-pillow python-scipy ninja patchelf binutils bison flex build-essential -y
+            install_if_missing proot-distro ldd liblzma openssl which tree mtd-utils lzop sleuthkit cabextract p7zip lhasa arj cmake rust git wget nodejs autoconf automake python-pip python-pillow python-scipy ninja patchelf binutils bison flex build-essential
             npm install -g degit
             [ ! -f ~/.bashrc ] && touch ~/.bashrc
             echo 'export PATH="$PATH:~/.cargo/bin:/system/bin"
@@ -123,7 +279,7 @@ while true; do
             echo "Environment setup complete"
             read -p "Press Enter to return to main menu"
             ;;
-        5)
+        6)
             echo "What repositories to add? (separate choices with comma)"
             echo "1) termux user repository (tur)"
             echo "2) gnu c library repository (glibc)"
@@ -159,7 +315,7 @@ while true; do
             fi
             read -p "Press Enter to return to main menu"
             ;;
-        6)
+        7)
             echo "Exiting script."
             exit 0
             ;;
