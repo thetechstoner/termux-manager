@@ -1,5 +1,4 @@
 #!/bin/bash
-
 check_storage() {
   if [ ! -d ~/storage ]; then
     termux-setup-storage
@@ -8,16 +7,23 @@ check_storage() {
 install_if_missing() {
     # Enable x11-repo if any package requires it
     local enable_x11=false
+    local to_install=()
     
-    # First check all packages to see if x11-repo is needed
+    # First check all packages
     for pkg in "$@"; do
-        if [[ "$pkg" == *"x11"* ]] || (pkg show "$pkg" 2>/dev/null | grep -q "x11-repo"); then
-            enable_x11=true
-            break
+        if ! pkg list-installed | grep -qw "^$pkg$"; then
+            to_install+=("$pkg")
+            if [[ "$pkg" == *"x11"* ]] || (pkg show "$pkg" 2>/dev/null | grep -q "x11-repo"); then
+                enable_x11=true
+            fi
+        else
+            echo "$pkg is already installed"
         fi
     done
     
-    # Enable x11-repo if needed and not already enabled
+    [[ ${#to_install[@]} -eq 0 ]] && return 0
+    
+    # Enable x11-repo if needed
     if $enable_x11 && ! pkg repo | grep -q "x11-repo"; then
         echo "Enabling x11-repo..."
         pkg install -y x11-repo || {
@@ -30,19 +36,12 @@ install_if_missing() {
         }
     fi
     
-    # Install all missing packages
-    local pkg
-    for pkg in "$@"; do
-        if ! pkg list-installed | grep -qw "^$pkg$"; then
-            echo "Installing $pkg..."
-            pkg install -y "$pkg" || {
-                echo "Failed to install $pkg" >&2
-                return 1
-            }
-        else
-            echo "$pkg is already installed"
-        fi
-    done
+    # Install missing packages
+    echo "Installing packages: ${to_install[*]}..."
+    pkg install -y "${to_install[@]}" || {
+        echo "Failed to install packages" >&2
+        return 1
+    }
 }
 install_termux_x11() {
     # install Termux-X11 APK
@@ -93,6 +92,45 @@ set_or_update_bashrc_var() {
     # apply changes immediately
     source "$bashrc_file"
 }
+install_repos() {
+    # Check for tur-repo
+    [[ " ${repos} " == *" tur-repo "* ]] && {
+        # Commands to run for tur-repo
+        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y tur-repo
+        fi
+    }
+    # Check for glibc-repo
+    [[ " ${repos} " == *" glibc-repo "* ]] && {
+        # Commands to run for glibc-repo
+        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y glibc-repo
+        fi
+    }
+    # Check for x11-repo
+    [[ " ${repos} " == *" x11-repo "* ]] && {
+        # Commands to run for x11-repo
+        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y x11-repo
+        fi
+    }
+    # Check for root-repo
+    [[ " ${repos} " == *" root-repo "* ]] && {
+        # Commands to run for root-repo
+        if [ -f "PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y root-repo
+        fi
+    }
+    return 0
+}
 download_bootstrap() {
   if [ -n "$latest_url" ]; then
     echo "Downloading bootstrap..."
@@ -124,7 +162,6 @@ rm -fr /data/data/com.termux/files/usr/
 exit
 }
 arch=$(uname -m)
-
 while true; do
     clear
     echo "Termux Environment Manager"
@@ -192,10 +229,10 @@ while true; do
                 1)
                     install_if_missing xorg-twm aterm
                     # set/update TERMUX_X11_XSTARTUP
-                    set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm &"
-                    echo "Tab Window Manager installed. Run 'termux-x11 &' to start."
+                    set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm"
+                    echo "Tab Window Manager installed. Run 'termux-x11 :1' to start."
                     read -p "Press Enter to start Tab Window Manager"
-                    termux-x11 &
+                    termux-x11 :1
                     ;;
                 2)
                     echo "Choose Window Manager:"
@@ -205,17 +242,17 @@ while true; do
                     case $wm_choice in
                         1)
                             install_if_missing fluxbox aterm
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "fluxbox & aterm &"
-                            echo "Fluxbox installed. Run 'termux-x11 &' to start."
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
+                            echo "Fluxbox installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
-                            termux-x11 &
+                            termux-x11 :1
                             ;;
                         2)
                             install_if_missing openbox aterm obconf
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm &"
-                            echo "Openbox installed. Run 'termux-x11 &' to start."
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
+                            echo "Openbox installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start Openbox Window Manager"
-                            termux-x11 &
+                            termux-x11 :1
                             ;;
                         *)
                             echo "Invalid choice. Returning to main menu."
@@ -231,24 +268,24 @@ while true; do
                     case $de_choice in
                         1) # XFCE
                             install_if_missing xfce4 xfce4-terminal xfce4-goodies
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startxfce4 &"
-                            echo "XFCE installed. Run 'termux-x11 &' to start."
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startxfce4"
+                            echo "XFCE installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start XFCE"
-                            termux-x11 &
+                            termux-x11 :1
                             ;;
                         2) # LXQt
                             install_if_missing lxqt qterminal
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startlxqt &"
-                            echo "LXQt installed. Run 'termux-x11 &' to start."
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startlxqt"
+                            echo "LXQt installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start LXQt"
-                            termux-x11 &
+                            termux-x11 :1
                             ;;
                         3) # MATE
                             install_if_missing mate-desktop mate-terminal
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "mate-session &"
-                            echo "MATE installed. Run 'termux-x11 &' to start."
+                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "mate-session"
+                            echo "MATE installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start MATE"
-                            termux-x11 &
+                            termux-x11 :1
                             ;;
                     esac
                     ;;
@@ -308,7 +345,7 @@ while true; do
                 esac
             done
             if [ -n "$repos" ]; then
-                pkg install $repos -y
+                install_repos
                 echo "Repositories added successfully"
             else
                 echo "No valid repositories selected."
@@ -327,43 +364,47 @@ while true; do
 done
 
 : '
-# Development
-# https://wiki.termux.com/wiki/Development
-
-# Development Environments
-# https://wiki.termux.com/wiki/Development_Environments
-
-# Differences from Linux
-# https://wiki.termux.com/wiki/Differences_from_Linux
-# use Linux file system layout
-termux-chroot
-
-# Package Management
-# https://wiki.termux.com/wiki/Package_Management
-
-# Glibc packages for termux
-# https://github.com/termux/glibc-packages
-
-# Termux User Repository (TUR)
-# https://github.com/termux-user-repository/tur
-
-# Remote Access - Termux Wiki
-# https://wiki.termux.com/wiki/Remote_Access
-
-# Bypassing NAT - Termux Wiki
-# https://wiki.termux.com/wiki/Bypassing_NAT
-
-# Termux-services - Termux Wiki
-# https://wiki.termux.com/wiki/Termux-services
-
-# Termux:Boot - Termux Wiki
-# https://wiki.termux.com/wiki/Termux:Boot
-
 $PREFIX=/data/data/com.termux/files/usr
 $HOME=/data/data/com.termux/files/home
 
-# archiconda3: Light-weight Anaconda environment (ARM64)
-# https://github.com/piyoki/archiconda3
+Development
+https://wiki.termux.com/wiki/Development
+
+Development Environments
+https://wiki.termux.com/wiki/Development_Environments
+
+Differences from Linux
+https://wiki.termux.com/wiki/Differences_from_Linux
+
+# use Linux file system layout
+termux-chroot
+
+Package Management
+https://wiki.termux.com/wiki/Package_Management
+
+Glibc packages for termux
+https://github.com/termux/glibc-packages
+
+Termux User Repository (TUR)
+https://github.com/termux-user-repository/tur
+
+termux-pacman service repositories
+https://service.termux-pacman.dev/
+
+Remote Access - Termux Wiki
+https://wiki.termux.com/wiki/Remote_Access
+
+Bypassing NAT - Termux Wiki
+https://wiki.termux.com/wiki/Bypassing_NAT
+
+Termux-services - Termux Wiki
+https://wiki.termux.com/wiki/Termux-services
+
+Termux:Boot - Termux Wiki
+https://wiki.termux.com/wiki/Termux:Boot
+
+archiconda3: Light-weight Anaconda environment (ARM64)
+https://github.com/piyoki/archiconda3
 
 # build & install binwalk in termux
 npx degit github:ReFirmLabs/binwalk binwalk --force
