@@ -28,13 +28,14 @@ Run the script and select from the menu:
 
 ```
 Termux Environment Manager
-Select a choice:
+select a choice:
 1) Restore Termux backup
-2) Backup Termux  
-3) Switch package manager in termux
-4) Setup Build Environment
-5) Add Repositories to Termux
-6) Exit
+2) Backup Termux
+3) switch package manager in termux
+4) Setup Termux GUI
+5) Setup Build Environment
+6) Add Repositories to Termux
+7) Exit
 ```
 
 ### Package Manager Switching
