@@ -276,9 +276,10 @@ while true; do
                 1)
                     install_if_missing xorg-twm aterm
                     set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm"
-                    echo "Tab Window Manager installed. Run 'termux-x11 :1' to start."
+                    echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                    echo "Tab Window Manager installed. Run 'startx11' to start."
                     read -p "Press Enter to start Tab Window Manager"
-                    termux-x11 :1
+                    startx11
                     ;;
                 2)
                     echo "Choose Window Manager:"
@@ -289,16 +290,18 @@ while true; do
                         1)
                             install_if_missing fluxbox aterm
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
-                            echo "Fluxbox installed. Run 'termux-x11 :1' to start."
+                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            echo "Fluxbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
-                            termux-x11 :1
+                            startx11
                             ;;
                         2)
                             install_if_missing openbox aterm obconf-qt
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
-                            echo "Openbox installed. Run 'termux-x11 :1' to start."
+                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
-                            termux-x11 :1
+                            startx11
                             ;;
                         *)
                             echo "Invalid choice. Returning to main menu."
@@ -315,23 +318,26 @@ while true; do
                         1) # XFCE
                             install_if_missing xfce4 xfce4-terminal xfce4-goodies
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startxfce4"
-                            echo "XFCE installed. Run 'termux-x11 :1' to start."
+                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            echo "XFCE installed. Run 'startx11' to start."
                             read -p "Press Enter to start XFCE"
-                            termux-x11 :1
+                            startx11
                             ;;
                         2) # LXQt
                             install_if_missing lxqt qterminal
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startlxqt"
-                            echo "LXQt installed. Run 'termux-x11 :1' to start."
+                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            echo "LXQt installed. Run 'startx11' to start."
                             read -p "Press Enter to start LXQt"
-                            termux-x11 :1
+                            startx11
                             ;;
                         3) # MATE
                             install_if_missing mate-desktop mate-terminal
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "mate-session"
-                            echo "MATE installed. Run 'termux-x11 :1' to start."
+                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            echo "MATE installed. Run 'startx11' to start."
                             read -p "Press Enter to start MATE"
-                            termux-x11 :1
+                            startx11
                             ;;
                     esac
                     ;;
