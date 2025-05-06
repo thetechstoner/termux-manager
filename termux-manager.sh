@@ -358,6 +358,53 @@ set_or_update_bashrc_alias() {
     # Source the updated file
     source "$bashrc_file"
 }
+set_termux_properties() {
+    # Argument check (supports both quoted and unquoted)
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: set_termux_properties <key> <value>" >&2
+        echo "       set_termux_properties \"<key>\" \"<value>\"" >&2
+        echo "       set_termux_properties \"<key>\" \"\"   # To comment out key" >&2
+        return 1
+    fi
+
+    local KEY="${1//\"/}"  # Remove any surrounding quotes
+    local VALUE="${2//\"/}" # Remove any surrounding quotes
+    local PROPERTIES_FILE="$HOME/.termux/termux.properties"
+    
+    # Silent directory and file creation
+    mkdir -p ~/.termux 2>/dev/null || return 1
+    touch "$PROPERTIES_FILE" 2>/dev/null || return 1
+
+    # Handle empty value (comment out the key)
+    if [[ -z "$VALUE" ]]; then
+        if grep -q -E "^(#\s*)?${KEY}\s*[=:]" "$PROPERTIES_FILE" 2>/dev/null; then
+            # Comment out existing entry
+            sed -i -E "/^(#\s*)?${KEY}\s*[=:]/s/^/# /" "$PROPERTIES_FILE" 2>/dev/null || return 1
+        else
+            # Add new commented entry
+            echo "# ${KEY}=" >> "$PROPERTIES_FILE" 2>/dev/null || return 1
+        fi
+    else
+        # Update or add property (handles all formats)
+        if grep -q -E "^(#\s*)?${KEY}\s*[=:]" "$PROPERTIES_FILE" 2>/dev/null; then
+            sed -i -E "/^(#\s*)?${KEY}\s*[=:]/c\\${KEY}=${VALUE}" "$PROPERTIES_FILE" 2>/dev/null || return 1
+        else
+            echo "${KEY}=${VALUE}" >> "$PROPERTIES_FILE" 2>/dev/null || return 1
+        fi
+    fi
+
+    # Only show errors if reload fails
+    termux-reload-settings 2>/dev/null || {
+        echo "Error: Failed to reload Termux settings" >&2
+        return 2
+    }
+    : '
+    usage example:
+    set_termux_properties bell-character beep     # Set property
+    set_termux_properties "bell-character" "beep" # Same with quotes
+    set_termux_properties bell-character ""       # Comment out property
+    '
+}
 download_bootstrap() {
   if [ -n "$latest_url" ]; then
     echo "Downloading bootstrap..."
@@ -457,6 +504,7 @@ while true; do
                     install_if_missing xorg-twm aterm
                     set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "twm & aterm"
                     set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                    set_termux_properties "fullscreen" "true"
                     echo "Tab Window Manager installed. Run 'startx11' to start."
                     read -p "Press Enter to start Tab Window Manager"
                     termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -471,6 +519,7 @@ while true; do
                             install_if_missing fluxbox aterm
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_termux_properties "fullscreen" "true"
                             echo "Fluxbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -479,6 +528,7 @@ while true; do
                             install_if_missing openbox aterm obconf-qt
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_termux_properties "fullscreen" "true"
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -499,6 +549,7 @@ while true; do
                             install_if_missing xfce4 xfce4-terminal xfce4-goodies
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "startxfce4"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_termux_properties "fullscreen" "true"
                             echo "XFCE installed. Run 'startx11' to start."
                             read -p "Press Enter to start XFCE"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -507,6 +558,7 @@ while true; do
                             install_if_missing lxqt qterminal
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "startlxqt"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_termux_properties "fullscreen" "true"
                             echo "LXQt installed. Run 'startx11' to start."
                             read -p "Press Enter to start LXQt"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -515,6 +567,7 @@ while true; do
                             install_if_missing mate-desktop mate-terminal
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "mate-session"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_termux_properties "fullscreen" "true"
                             echo "MATE installed. Run 'startx11' to start."
                             read -p "Press Enter to start MATE"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -596,13 +649,14 @@ while true; do
 done
 
 : '
-# $PREFIX=/data/data/com.termux/files/usr
-# $HOME=/data/data/com.termux/files/home
+by default:
+$PREFIX=/data/data/com.termux/files/usr
+$HOME=/data/data/com.termux/files/home
 
 pacman uses:
-# $PREFIX/etc/pacman.d/
+$PREFIX/etc/pacman.d/
 apt uses:
-# $PREFIX/etc/apt/sources.list.d/
+$PREFIX/etc/apt/sources.list.d/
 
 Development
 https://wiki.termux.com/wiki/Development
