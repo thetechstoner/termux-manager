@@ -36,65 +36,90 @@ install_repos() {
     return 0
 }
 install_if_missing() {
-    # Repository to packages mapping (multi-package format)
-    declare -A repo_pkg_map=(
-        # X11 repository
-        ["x11-repo"]="x11-repo termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
-        
-        # glibc repository
-        ["glibc-repo"]="glibc-repo"
-        
-        # termux user repository
-        ["tur-repo"]="tur-repo gcc-12 llvm"
-        
-        # rooted device repository
-        ["root-repo"]="root-repo tsu"
-        
+    # Detect package manager
+    local pkg_manager
+    if command -v pacman >/dev/null 2>&1 && [ -f "/data/data/com.termux/files/usr/etc/pacman.conf" ]; then
+        pkg_manager="pacman"
+    else
+        pkg_manager="pkg"
+    fi
+
+    # Common package mappings
+    declare -A common_pkg_map=(
+        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
+        ["glibc"]="glibc"
+        ["tur"]="gcc-12 llvm"
+        ["root"]="tsu"
     )
 
-    # Additional patterns that require specific repos
-    declare -A pattern_repo_map=(
-        ["*x11*"]="x11-repo"
-        ["*glibc*"]="glibc-repo"
-        ["*tur*"]="tur-repo"
-        ["*root*"]="root-repo"
-    )
+    # Package manager specific configurations
+    if [ "$pkg_manager" = "pkg" ]; then
+        # Termux (pkg) specific mappings
+        declare -A repo_pkg_map=(
+            ["x11-repo"]="x11-repo ${common_pkg_map[x11]}"
+            ["glibc-repo"]="glibc-repo ${common_pkg_map[glibc]}"
+            ["tur-repo"]="tur-repo ${common_pkg_map[tur]}"
+            ["root-repo"]="root-repo ${common_pkg_map[root]}"
+        )
+        declare -A pattern_repo_map=(
+            ["*x11*"]="x11-repo"
+            ["*glibc*"]="glibc-repo"
+            ["*tur*"]="tur-repo"
+            ["*root*"]="root-repo"
+        )
+    else
+        # Termux-pacman specific mappings
+        declare -A repo_pkg_map=(
+            ["x11"]="${common_pkg_map[x11]}"
+            ["gpkg"]="${common_pkg_map[glibc]}"  # Changed from glibc to gpkg
+            ["tur"]="${common_pkg_map[tur]}"
+            ["root"]="${common_pkg_map[root]}"
+        )
+        declare -A pattern_repo_map=(
+            ["*x11*"]="x11"
+            ["*glibc*"]="gpkg"  # Changed from glibc to gpkg
+            ["*tur*"]="tur"
+            ["*root*"]="root"
+        )
+        local pacman_conf="/data/data/com.termux/files/usr/etc/pacman.conf"
+        local repo_url="https://service.termux-pacman.dev"
+    fi
 
     local to_install=()
     local repos_to_enable=()
 
     # First check all packages
     for pkg in "$@"; do
-        if ! pkg list-installed | grep -qw "^$pkg$"; then
-            to_install+=("$pkg")
-            
-            # Check if package exists in any repo's package list
-            for repo in "${!repo_pkg_map[@]}"; do
-                if [[ " ${repo_pkg_map[$repo]} " == *" $pkg "* ]]; then
-                    repos_to_enable+=("$repo")
-                fi
-            done
-            
-            # Check pattern matching if no direct match found
-            if [[ ${#repos_to_enable[@]} -eq 0 ]]; then
-                for pattern in "${!pattern_repo_map[@]}"; do
-                    if [[ "$pkg" == $pattern ]]; then
-                        repos_to_enable+=("${pattern_repo_map[$pattern]}")
-                    fi
-                done
-            fi
-            
-            # Check package metadata as last resort
-            if [[ ${#repos_to_enable[@]} -eq 0 ]]; then
-                pkg_show_output=$(pkg show "$pkg" 2>/dev/null)
-                for repo in "${!repo_pkg_map[@]}"; do
-                    if [[ "$pkg_show_output" == *"$repo"* ]]; then
-                        repos_to_enable+=("$repo")
-                    fi
-                done
+        if [ "$pkg_manager" = "pkg" ]; then
+            if ! pkg list-installed | grep -qw "^$pkg$"; then
+                to_install+=("$pkg")
+            else
+                echo "$pkg is already installed"
+                continue
             fi
         else
-            echo "$pkg is already installed"
+            if ! pacman -Qi "$pkg" &>/dev/null 2>&1; then
+                to_install+=("$pkg")
+            else
+                echo "$pkg is already installed"
+                continue
+            fi
+        fi
+
+        # Check if package exists in any repo's package list
+        for repo in "${!repo_pkg_map[@]}"; do
+            if [[ " ${repo_pkg_map[$repo]} " == *" $pkg "* ]]; then
+                repos_to_enable+=("$repo")
+            fi
+        done
+        
+        # Check pattern matching if no direct match found
+        if [[ ${#repos_to_enable[@]} -eq 0 ]]; then
+            for pattern in "${!pattern_repo_map[@]}"; do
+                if [[ "$pkg" == $pattern ]]; then
+                    repos_to_enable+=("${pattern_repo_map[$pattern]}")
+                fi
+            done
         fi
     done
 
@@ -104,30 +129,66 @@ install_if_missing() {
     local unique_repos=()
     readarray -t unique_repos < <(printf '%s\n' "${repos_to_enable[@]}" | sort -u)
 
+    # Handle repository enabling based on package manager
     for repo in "${unique_repos[@]}"; do
-        if ! pkg repo | grep -q "$repo"; then
-            echo "Enabling $repo..."
-            pkg install -y "$repo" || {
-                echo "Failed to install $repo" >&2
-                return 1
-            }
+        if [ "$pkg_manager" = "pkg" ]; then
+            if ! pkg repo | grep -q "$repo"; then
+                echo "Enabling $repo..."
+                pkg install -y "$repo" || {
+                    echo "Failed to install $repo" >&2
+                    return 1
+                }
+            fi
+        else
+            if ! grep -q "^\[$repo\]" "$pacman_conf" 2>/dev/null; then
+                echo "Enabling $repo repository..."
+                # Create backup of pacman.conf
+                cp "$pacman_conf" "${pacman_conf}.bak" 2>/dev/null
+                # Add repository configuration
+                sed -i "/^\[core\]/i \[$repo\]\nServer = ${repo_url}/$repo/\$arch\n" "$pacman_conf" || {
+                    echo "Failed to enable $repo repository" >&2
+                    # Restore backup if modification failed
+                    mv "${pacman_conf}.bak" "$pacman_conf" 2>/dev/null
+                    return 1
+                }
+                echo "Successfully enabled $repo repository"
+            fi
         fi
     done
 
     # Update package list if we added any repos
-    [[ ${#unique_repos[@]} -gt 0 ]] && {
-        pkg update || {
-            echo "Failed to update packages" >&2
-            return 1
-        }
-    }
+    if [[ ${#unique_repos[@]} -gt 0 ]]; then
+        if [ "$pkg_manager" = "pkg" ]; then
+            echo "Updating package lists..."
+            pkg update -y || {
+                echo "Failed to update packages" >&2
+                return 1
+            }
+        else
+            echo "Synchronizing package databases..."
+            pacman -Sy || {
+                echo "Failed to update package databases" >&2
+                return 1
+            }
+        fi
+    fi
 
     # Install missing packages
     echo "Installing packages: ${to_install[*]}..."
-    pkg install -y "${to_install[@]}" || {
-        echo "Failed to install packages" >&2
-        return 1
-    }
+    if [ "$pkg_manager" = "pkg" ]; then
+        pkg install -y "${to_install[@]}" || {
+            echo "Failed to install packages" >&2
+            return 1
+        }
+    else
+        pacman -S --noconfirm "${to_install[@]}" || {
+            echo "Failed to install packages" >&2
+            return 1
+        }
+    fi
+    
+    echo "Package installation completed successfully"
+    return 0
 }
 install_termux_x11() {
     # install Termux-X11 APK
@@ -172,8 +233,9 @@ set_or_update_bashrc_variable() {
 
     # Check if the variable exists in .bashrc
     if grep -q "^export ${var_name}=" "$bashrc_file"; then
-        # Variable exists, update its value
-        sed "s/^export ${var_name}=.*/export ${var_name}='${value}'/" "$bashrc_file" > "$temp_file" && mv "$temp_file" "$bashrc_file"
+        # Variable exists, update its value using awk
+        awk -v var="^export ${var_name}=" -v newval="export ${var_name}='${value}'" \
+            '{if ($0 ~ var) print newval; else print $0}' "$bashrc_file" > "$temp_file" && mv "$temp_file" "$bashrc_file"
     else
         # Variable doesn't exist, add it
         echo "export ${var_name}='${value}'" >> "$bashrc_file"
@@ -320,7 +382,7 @@ while true; do
                     set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                     echo "Tab Window Manager installed. Run 'startx11' to start."
                     read -p "Press Enter to start Tab Window Manager"
-                    startx11
+                    termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                     ;;
                 2)
                     echo "Choose Window Manager:"
@@ -334,7 +396,7 @@ while true; do
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "Fluxbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
-                            startx11
+                            termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                         2)
                             install_if_missing openbox aterm obconf-qt
@@ -342,7 +404,7 @@ while true; do
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
-                            startx11
+                            termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                         *)
                             echo "Invalid choice. Returning to main menu."
@@ -362,7 +424,7 @@ while true; do
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "XFCE installed. Run 'startx11' to start."
                             read -p "Press Enter to start XFCE"
-                            startx11
+                            termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                         2) # LXQt
                             install_if_missing lxqt qterminal
@@ -370,7 +432,7 @@ while true; do
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "LXQt installed. Run 'startx11' to start."
                             read -p "Press Enter to start LXQt"
-                            startx11
+                            termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                         3) # MATE
                             install_if_missing mate-desktop mate-terminal
@@ -378,7 +440,7 @@ while true; do
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "MATE installed. Run 'startx11' to start."
                             read -p "Press Enter to start MATE"
-                            startx11
+                            termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                     esac
                     ;;
