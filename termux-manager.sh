@@ -4,38 +4,132 @@ check_storage() {
     termux-setup-storage
   fi
 }
+install_repos() {
+    # Check for tur-repo
+    [[ " ${repos} " == *" tur-repo "* ]] && {
+        # Commands to run for tur-repo
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y tur-repo
+        fi
+    }
+    # Check for glibc-repo
+    [[ " ${repos} " == *" glibc-repo "* ]] && {
+        # Commands to run for glibc-repo
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y glibc-repo
+        fi
+    }
+    # Check for x11-repo
+    [[ " ${repos} " == *" x11-repo "* ]] && {
+        # Commands to run for x11-repo
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y x11-repo
+        fi
+    }
+    # Check for root-repo
+    [[ " ${repos} " == *" root-repo "* ]] && {
+        # Commands to run for root-repo
+        if [ -f "$PREFIX/etc/pacman.conf" ]; then
+        # pacman.conf exists
+        else
+        pkg install -y root-repo
+        fi
+    }
+    return 0
+}
 install_if_missing() {
-    # Enable x11-repo if any package requires it
-    local enable_x11=false
+    # Repository to packages mapping (multi-package format)
+    declare -A repo_pkg_map=(
+        # X11 repository
+        ["x11-repo"]="x11-repo termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
+        
+        # glibc repository
+        ["glibc-repo"]="glibc-repo"
+        
+        # termux user repository
+        ["tur-repo"]="tur-repo gcc-12 llvm"
+        
+        # rooted device repository
+        ["root-repo"]="root-repo tsu"
+        
+    )
+
+    # Additional patterns that require specific repos
+    declare -A pattern_repo_map=(
+        ["*x11*"]="x11-repo"
+        ["*glibc*"]="glibc-repo"
+        ["*tur*"]="tur-repo"
+        ["*root*"]="root-repo"
+    )
+
     local to_install=()
-    
+    local repos_to_enable=()
+
     # First check all packages
     for pkg in "$@"; do
         if ! pkg list-installed | grep -qw "^$pkg$"; then
             to_install+=("$pkg")
-            if [[ "$pkg" == *"x11"* ]] || (pkg show "$pkg" 2>/dev/null | grep -q "x11-repo"); then
-                enable_x11=true
+            
+            # Check if package exists in any repo's package list
+            for repo in "${!repo_pkg_map[@]}"; do
+                if [[ " ${repo_pkg_map[$repo]} " == *" $pkg "* ]]; then
+                    repos_to_enable+=("$repo")
+                fi
+            done
+            
+            # Check pattern matching if no direct match found
+            if [[ ${#repos_to_enable[@]} -eq 0 ]]; then
+                for pattern in "${!pattern_repo_map[@]}"; do
+                    if [[ "$pkg" == $pattern ]]; then
+                        repos_to_enable+=("${pattern_repo_map[$pattern]}")
+                    fi
+                done
+            fi
+            
+            # Check package metadata as last resort
+            if [[ ${#repos_to_enable[@]} -eq 0 ]]; then
+                pkg_show_output=$(pkg show "$pkg" 2>/dev/null)
+                for repo in "${!repo_pkg_map[@]}"; do
+                    if [[ "$pkg_show_output" == *"$repo"* ]]; then
+                        repos_to_enable+=("$repo")
+                    fi
+                done
             fi
         else
             echo "$pkg is already installed"
         fi
     done
-    
+
     [[ ${#to_install[@]} -eq 0 ]] && return 0
-    
-    # Enable x11-repo if needed
-    if $enable_x11 && ! pkg repo | grep -q "x11-repo"; then
-        echo "Enabling x11-repo..."
-        pkg install -y x11-repo || {
-            echo "Failed to install x11-repo" >&2
-            return 1
-        }
+
+    # Enable required repos if needed (remove duplicates)
+    local unique_repos=()
+    readarray -t unique_repos < <(printf '%s\n' "${repos_to_enable[@]}" | sort -u)
+
+    for repo in "${unique_repos[@]}"; do
+        if ! pkg repo | grep -q "$repo"; then
+            echo "Enabling $repo..."
+            pkg install -y "$repo" || {
+                echo "Failed to install $repo" >&2
+                return 1
+            }
+        fi
+    done
+
+    # Update package list if we added any repos
+    [[ ${#unique_repos[@]} -gt 0 ]] && {
         pkg update || {
             echo "Failed to update packages" >&2
             return 1
         }
-    fi
-    
+    }
+
     # Install missing packages
     echo "Installing packages: ${to_install[*]}..."
     pkg install -y "${to_install[@]}" || {
@@ -91,45 +185,6 @@ set_or_update_bashrc_var() {
 
     # apply changes immediately
     source "$bashrc_file"
-}
-install_repos() {
-    # Check for tur-repo
-    [[ " ${repos} " == *" tur-repo "* ]] && {
-        # Commands to run for tur-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
-        pkg install -y tur-repo
-        fi
-    }
-    # Check for glibc-repo
-    [[ " ${repos} " == *" glibc-repo "* ]] && {
-        # Commands to run for glibc-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
-        pkg install -y glibc-repo
-        fi
-    }
-    # Check for x11-repo
-    [[ " ${repos} " == *" x11-repo "* ]] && {
-        # Commands to run for x11-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
-        pkg install -y x11-repo
-        fi
-    }
-    # Check for root-repo
-    [[ " ${repos} " == *" root-repo "* ]] && {
-        # Commands to run for root-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
-        pkg install -y root-repo
-        fi
-    }
-    return 0
 }
 download_bootstrap() {
   if [ -n "$latest_url" ]; then
@@ -247,7 +302,7 @@ while true; do
                             termux-x11 :1
                             ;;
                         2)
-                            install_if_missing openbox aterm obconf
+                            install_if_missing openbox aterm obconf-qt
                             set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
                             echo "Openbox installed. Run 'termux-x11 :1' to start."
                             read -p "Press Enter to start Openbox Window Manager"
@@ -365,6 +420,11 @@ done
 : '
 $PREFIX=/data/data/com.termux/files/usr
 $HOME=/data/data/com.termux/files/home
+
+pacman uses:
+$PREFIX/etc/pacman.d/
+apt uses:
+$PREFIX/etc/apt/sources.list.d/
 
 Development
 https://wiki.termux.com/wiki/Development
