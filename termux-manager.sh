@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 check_storage() {
   if [ ! -d ~/storage ]; then
     termux-setup-storage
@@ -8,36 +8,28 @@ install_repos() {
     # Check for tur-repo
     [[ " ${repos} " == *" tur-repo "* ]] && {
         # Commands to run for tur-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
+        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
         pkg install -y tur-repo
         fi
     }
     # Check for glibc-repo
     [[ " ${repos} " == *" glibc-repo "* ]] && {
         # Commands to run for glibc-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
+        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
         pkg install -y glibc-repo
         fi
     }
     # Check for x11-repo
     [[ " ${repos} " == *" x11-repo "* ]] && {
         # Commands to run for x11-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
+        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
         pkg install -y x11-repo
         fi
     }
     # Check for root-repo
     [[ " ${repos} " == *" root-repo "* ]] && {
         # Commands to run for root-repo
-        if [ -f "$PREFIX/etc/pacman.conf" ]; then
-        # pacman.conf exists
-        else
+        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
         pkg install -y root-repo
         fi
     }
