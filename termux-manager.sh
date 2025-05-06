@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 check_storage() {
   if [ ! -d ~/storage ]; then
     termux-setup-storage
