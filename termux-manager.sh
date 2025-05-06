@@ -5,34 +5,111 @@ check_storage() {
   fi
 }
 install_repos() {
-    # Check for tur-repo
-    [[ " ${repos} " == *" tur-repo "* ]] && {
-        # Commands to run for tur-repo
-        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-          pkg install -y tur-repo
-        fi
-    }
-    # Check for glibc-repo
-    [[ " ${repos} " == *" glibc-repo "* ]] && {
-        # Commands to run for glibc-repo
-        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-          pkg install -y glibc-repo
-        fi
-    }
-    # Check for x11-repo
-    [[ " ${repos} " == *" x11-repo "* ]] && {
-        # Commands to run for x11-repo
-        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-          pkg install -y x11-repo
-        fi
-    }
-    # Check for root-repo
-    [[ " ${repos} " == *" root-repo "* ]] && {
-        # Commands to run for root-repo
-        if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-          pkg install -y root-repo
-        fi
-    }
+    # Detect package manager
+    local pkg_manager
+    if command -v pacman >/dev/null 2>&1 && [ -f "/data/data/com.termux/files/usr/etc/pacman.conf" ]; then
+        pkg_manager="pacman"
+    else
+        pkg_manager="pkg"
+    fi
+
+    # Process each requested repo
+    for repo in ${repos}; do
+        case $repo in
+            "tur-repo")
+                if [ "$pkg_manager" = "pkg" ]; then
+                    # Termux (apt) installation
+                    if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
+                        pkg install -y tur-repo || {
+                            echo "Failed to install tur-repo" >&2
+                            return 1
+                        }
+                    fi
+                else
+                    # Termux-pacman installation
+                    echo "Adding tur repository for pacman..."
+                    if ! grep -q "^\[tur\]" "$PREFIX/etc/pacman.conf" 2>/dev/null; then
+                        echo -e "\n[tur]\nServer = https://termux-pacman.dev/tur/\$arch" >> "$PREFIX/etc/pacman.conf" && \
+                        pacman -Sy || {
+                            echo "Failed to add tur repository" >&2
+                            return 1
+                        }
+                    fi
+                fi
+                ;;
+
+            "glibc-repo")
+                if [ "$pkg_manager" = "pkg" ]; then
+                    # Termux (apt) installation
+                    if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
+                        pkg install -y glibc-repo || {
+                            echo "Failed to install glibc-repo" >&2
+                            return 1
+                        }
+                    fi
+                else
+                    # Termux-pacman installation
+                    echo "Adding gpkg repository for pacman..."
+                    if ! grep -q "^\[gpkg\]" "$PREFIX/etc/pacman.conf" 2>/dev/null; then
+                        echo -e "\n[gpkg]\nServer = https://termux-pacman.dev/gpkg/\$arch" >> "$PREFIX/etc/pacman.conf" && \
+                        pacman -Sy || {
+                            echo "Failed to add gpkg repository" >&2
+                            return 1
+                        }
+                    fi
+                fi
+                ;;
+
+            "x11-repo")
+                if [ "$pkg_manager" = "pkg" ]; then
+                    # Termux (apt) installation
+                    if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
+                        pkg install -y x11-repo || {
+                            echo "Failed to install x11-repo" >&2
+                            return 1
+                        }
+                    fi
+                else
+                    # Termux-pacman installation
+                    echo "Adding x11 repository for pacman..."
+                    if ! grep -q "^\[x11\]" "$PREFIX/etc/pacman.conf" 2>/dev/null; then
+                        echo -e "\n[x11]\nServer = https://termux-pacman.dev/x11/\$arch" >> "$PREFIX/etc/pacman.conf" && \
+                        pacman -Sy || {
+                            echo "Failed to add x11 repository" >&2
+                            return 1
+                        }
+                    fi
+                fi
+                ;;
+
+            "root-repo")
+                if [ "$pkg_manager" = "pkg" ]; then
+                    # Termux (apt) installation
+                    if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
+                        pkg install -y root-repo || {
+                            echo "Failed to install root-repo" >&2
+                            return 1
+                        }
+                    fi
+                else
+                    # Termux-pacman installation
+                    echo "Adding root repository for pacman..."
+                    if ! grep -q "^\[root\]" "$PREFIX/etc/pacman.conf" 2>/dev/null; then
+                        echo -e "\n[root]\nServer = https://termux-pacman.dev/root/\$arch" >> "$PREFIX/etc/pacman.conf" && \
+                        pacman -Sy || {
+                            echo "Failed to add root repository" >&2
+                            return 1
+                        }
+                    fi
+                fi
+                ;;
+
+            *)
+                echo "Unknown repository: $repo" >&2
+                ;;
+        esac
+    done
+
     return 0
 }
 install_if_missing() {
