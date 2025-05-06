@@ -9,28 +9,28 @@ install_repos() {
     [[ " ${repos} " == *" tur-repo "* ]] && {
         # Commands to run for tur-repo
         if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-        pkg install -y tur-repo
+          pkg install -y tur-repo
         fi
     }
     # Check for glibc-repo
     [[ " ${repos} " == *" glibc-repo "* ]] && {
         # Commands to run for glibc-repo
         if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-        pkg install -y glibc-repo
+          pkg install -y glibc-repo
         fi
     }
     # Check for x11-repo
     [[ " ${repos} " == *" x11-repo "* ]] && {
         # Commands to run for x11-repo
         if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-        pkg install -y x11-repo
+          pkg install -y x11-repo
         fi
     }
     # Check for root-repo
     [[ " ${repos} " == *" root-repo "* ]] && {
         # Commands to run for root-repo
         if [ -d "$PREFIX/etc/apt/sources.list.d/" ]; then
-        pkg install -y root-repo
+          pkg install -y root-repo
         fi
     }
     return 0
@@ -158,24 +158,65 @@ install_termux_x11() {
         termux-open "$FILENAME" # Opens in Termux package installer
     fi
 }
-set_or_update_bashrc_var() {
-    local var_name="$1"
-    local var_value="$2"
-    local bashrc_file="$HOME/.bashrc"
-    local export_line="export $var_name=\"$var_value\""
-
-    # Check if the variable is already defined in ~/.bashrc
-    if grep -q "^export $var_name=" "$bashrc_file"; then
-        # Update existing variable
-        sed -i "s|^export $var_name=.*|$export_line|" "$bashrc_file"
-        echo "Updated $var_name in $bashrc_file"
-    else
-        # Append new variable
-        echo "$export_line" >> "$bashrc_file"
-        echo "Added $var_name to $bashrc_file"
+set_or_update_bashrc_variable() {
+    # Check if exactly 2 arguments are provided
+    if [ "$#" -ne 2 ]; then
+        >&2 echo "Usage: set_or_update_bashrc_variable <VARIABLE_NAME> <VALUE>"
+        return 1
     fi
 
-    # apply changes immediately
+    local var_name="$1"
+    local value="$2"
+    local bashrc_file="$HOME/.bashrc"
+    local temp_file="${bashrc_file}.tmp"
+
+    # Check if the variable exists in .bashrc
+    if grep -q "^export ${var_name}=" "$bashrc_file"; then
+        # Variable exists, update its value
+        sed "s/^export ${var_name}=.*/export ${var_name}='${value}'/" "$bashrc_file" > "$temp_file" && mv "$temp_file" "$bashrc_file"
+    else
+        # Variable doesn't exist, add it
+        echo "export ${var_name}='${value}'" >> "$bashrc_file"
+    fi
+
+    # Source the updated .bashrc to make changes take effect in current session
+    source "$bashrc_file" >/dev/null 2>&1
+}
+set_or_update_bashrc_alias() {
+    if [ $# -ne 2 ]; then
+        echo "Usage: set_or_update_bashrc_alias <alias_name> <alias_command>"
+        return 1
+    fi
+
+    local alias_name="$1"
+    local alias_command="$2"
+    local bashrc_file="$HOME/.bashrc"
+    local temp_file="$(mktemp)"
+    local alias_line="alias $alias_name='$alias_command'"
+    local found=false
+
+    # Create .bashrc if it doesn't exist
+    [ -f "$bashrc_file" ] || touch "$bashrc_file"
+
+    # Process the file
+    while IFS= read -r line; do
+        if [[ "$line" == "alias $alias_name="* ]]; then
+            echo "$alias_line"  # Replace existing alias
+            found=true
+        else
+            echo "$line"  # Keep other lines unchanged
+        fi
+    done < "$bashrc_file" > "$temp_file"
+
+    # If alias wasn't found, append it
+    if [ "$found" = false ]; then
+        echo "$alias_line" >> "$temp_file"
+    fi
+
+    # Replace the original file
+    mv "$temp_file" "$bashrc_file"
+
+    # Source the updated file
     source "$bashrc_file"
 }
 download_bootstrap() {
@@ -275,8 +316,8 @@ while true; do
             case $option in
                 1)
                     install_if_missing xorg-twm aterm
-                    set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "twm & aterm"
-                    echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                    set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "twm & aterm"
+                    set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                     echo "Tab Window Manager installed. Run 'startx11' to start."
                     read -p "Press Enter to start Tab Window Manager"
                     startx11
@@ -289,16 +330,16 @@ while true; do
                     case $wm_choice in
                         1)
                             install_if_missing fluxbox aterm
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
-                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "Fluxbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
                             startx11
                             ;;
                         2)
                             install_if_missing openbox aterm obconf-qt
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
-                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
                             startx11
@@ -317,24 +358,24 @@ while true; do
                     case $de_choice in
                         1) # XFCE
                             install_if_missing xfce4 xfce4-terminal xfce4-goodies
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startxfce4"
-                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "startxfce4"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "XFCE installed. Run 'startx11' to start."
                             read -p "Press Enter to start XFCE"
                             startx11
                             ;;
                         2) # LXQt
                             install_if_missing lxqt qterminal
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "startlxqt"
-                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "startlxqt"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "LXQt installed. Run 'startx11' to start."
                             read -p "Press Enter to start LXQt"
                             startx11
                             ;;
                         3) # MATE
                             install_if_missing mate-desktop mate-terminal
-                            set_or_update_bashrc_var "TERMUX_X11_XSTARTUP" "mate-session"
-                            echo "alias startx11='termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity'" >> ~/.bashrc && source ~/.bashrc
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "mate-session"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             echo "MATE installed. Run 'startx11' to start."
                             read -p "Press Enter to start MATE"
                             startx11
@@ -416,13 +457,13 @@ while true; do
 done
 
 : '
-$PREFIX=/data/data/com.termux/files/usr
-$HOME=/data/data/com.termux/files/home
+# $PREFIX=/data/data/com.termux/files/usr
+# $HOME=/data/data/com.termux/files/home
 
 pacman uses:
-$PREFIX/etc/pacman.d/
+# $PREFIX/etc/pacman.d/
 apt uses:
-$PREFIX/etc/apt/sources.list.d/
+# $PREFIX/etc/apt/sources.list.d/
 
 Development
 https://wiki.termux.com/wiki/Development
