@@ -7,7 +7,7 @@ check_storage() {
 install_repos() {
     # Detect package manager
     local pkg_manager
-    if command -v pacman >/dev/null 2>&1 && [ -f "/data/data/com.termux/files/usr/etc/pacman.conf" ]; then
+    if command -v pacman >/dev/null 2>&1 && [ -f "$PREFIX/etc/pacman.conf" ]; then
         pkg_manager="pacman"
     else
         pkg_manager="pkg"
@@ -115,7 +115,7 @@ install_repos() {
 install_if_missing() {
     # Detect package manager
     local pkg_manager
-    if command -v pacman >/dev/null 2>&1 && [ -f "/data/data/com.termux/files/usr/etc/pacman.conf" ]; then
+    if command -v pacman >/dev/null 2>&1 && [ -f "$PREFIX/etc/pacman.conf" ]; then
         pkg_manager="pacman"
     else
         pkg_manager="pkg"
@@ -123,7 +123,7 @@ install_if_missing() {
 
     # Common package mappings
     declare -A common_pkg_map=(
-        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
+        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt feh xorg-xsetroot xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
         ["glibc"]="glibc"
         ["tur"]="gcc-12 llvm"
         ["root"]="tsu"
@@ -158,7 +158,7 @@ install_if_missing() {
             ["*tur*"]="tur"
             ["*root*"]="root"
         )
-        local pacman_conf="/data/data/com.termux/files/usr/etc/pacman.conf"
+        local pacman_conf="$PREFIX/etc/pacman.conf"
         local repo_url="https://service.termux-pacman.dev"
     fi
 
@@ -305,7 +305,7 @@ set_or_update_bashrc_variable() {
 
     local var_name="$1"
     local value="$2"
-    local bashrc_file="$HOME/.bashrc"
+    local bashrc_file="~/.bashrc"
     local temp_file="${bashrc_file}.tmp"
 
     # Check if the variable exists in .bashrc
@@ -329,7 +329,7 @@ set_or_update_bashrc_alias() {
 
     local alias_name="$1"
     local alias_command="$2"
-    local bashrc_file="$HOME/.bashrc"
+    local bashrc_file="~/.bashrc"
     local temp_file="$(mktemp)"
     local alias_line="alias $alias_name='$alias_command'"
     local found=false
@@ -369,7 +369,7 @@ set_termux_properties() {
 
     local KEY="${1//\"/}"  # Remove any surrounding quotes
     local VALUE="${2//\"/}" # Remove any surrounding quotes
-    local PROPERTIES_FILE="$HOME/.termux/termux.properties"
+    local PROPERTIES_FILE="~/.termux/termux.properties"
     
     # Silent directory and file creation
     mkdir -p ~/.termux 2>/dev/null || return 1
@@ -429,7 +429,7 @@ unzip_bootstrap() {
   cd
 }
 switchpkgmanager() {
-rm -fr /data/data/com.termux/files/usr/
+rm -fr $PREFIX
 /system/bin/mv /data/data/com.termux/files/usr-n/ /data/data/com.termux/files/usr/
 /system/bin/echo "switch pkg manager complete"
 /system/bin/echo "will close in 5 seconds. reopen termux to finish setup." && /system/bin/sleep 5
@@ -495,21 +495,11 @@ while true; do
             install_termux_x11
             echo "Termux GUI Setup"
             echo "Choose option:"
-            echo "1) Tab Window Manager (xorg-twm)"
-            echo "2) Window Manager (Fluxbox or Openbox)"
-            echo "3) Desktop environment (XFCE, LXQt or MATE)"
+            echo "1) Window Manager (Fluxbox or Openbox)"
+            echo "2) Desktop environment (XFCE, LXQt or MATE)"
             read -p "Enter number of option: " option
             case $option in
                 1)
-                    install_if_missing xorg-twm aterm
-                    set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "twm & aterm"
-                    set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
-                    set_termux_properties "fullscreen" "true"
-                    echo "Tab Window Manager installed. Run 'startx11' to start."
-                    read -p "Press Enter to start Tab Window Manager"
-                    termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
-                    ;;
-                2)
                     echo "Choose Window Manager:"
                     echo "1) Fluxbox (Lightweight, fast)"
                     echo "2) Openbox (Highly customizable)"
@@ -520,15 +510,33 @@ while true; do
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             set_termux_properties "fullscreen" "true"
+                            if [ ! -f ~/.fluxbox/menu ]; then
+                                fluxbox-generate_menu
+                            fi
                             echo "Fluxbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Fluxbox Window Manager"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                         2)
-                            install_if_missing openbox aterm obconf-qt
-                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session & aterm"
+                            install_if_missing openbox obconf-qt feh xorg-xsetroot aterm
+                            set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             set_termux_properties "fullscreen" "true"
+                            mkdir -p ~/.config/openbox
+                            cp -n $PREFIX/etc/xdg/openbox/* ~/.config/openbox/
+                            chmod +x ~/.config/openbox/autostart
+                            AUTOSTART_LINES=(
+                                "# start aterm terminal"
+                                "aterm &"
+                                ""
+                                "# set backgroud color"
+                                "xsetroot -solid black &"
+                            )
+                            if [ ! -f "~/.config/openbox/autostart" ] || ! grep -q "xsetroot -solid black" "~/.config/openbox/autostart"; then
+                                # Add the lines to the file
+                                printf "%s\n" "${AUTOSTART_LINES[@]}" >> "~/.config/openbox/autostart"
+                                echo "Added lines to ~/.config/openbox/autostart"
+                            fi
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
@@ -538,7 +546,7 @@ while true; do
                             ;;
                     esac
                     ;;
-                3)
+                2)
                     echo "Choose Desktop Environment:"
                     echo "1) XFCE (Lightweight, traditional)"
                     echo "2) LXQt (Fast, Qt-based)"
@@ -587,7 +595,7 @@ while true; do
             [ ! -f ~/.bashrc ] && touch ~/.bashrc
             echo 'export PATH="$PATH:~/.cargo/bin:/system/bin"
             export CFLAGS="-Wno-deprecated-declarations -Wno-unreachable-code"
-            export LD_LIBRARY_PATH="/data/data/com.termux/files/usr/lib"
+            export LD_LIBRARY_PATH="$PREFIX/lib"
             AR="llvm-ar"
             if [ "$(uname -m)" == "x86_64" ] || [ "$(uname -m)" == "aarch64" ]; then
             export LDFLAGS="-L/system/lib64"
@@ -649,14 +657,16 @@ while true; do
 done
 
 : '
-by default:
 $PREFIX=/data/data/com.termux/files/usr
 $HOME=/data/data/com.termux/files/home
 
 pacman uses:
 $PREFIX/etc/pacman.d/
+$PREFIX/etc/pacman.conf
+
 apt uses:
 $PREFIX/etc/apt/sources.list.d/
+$PREFIX/etc/apt/sources.list
 
 Development
 https://wiki.termux.com/wiki/Development
