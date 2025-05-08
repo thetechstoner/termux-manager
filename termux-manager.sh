@@ -1,6 +1,6 @@
 #!/bin/bash
 check_storage() {
-  if [ ! -d ~/storage ]; then
+  if [ ! -d $HOME/storage ]; then
     termux-setup-storage
   fi
 }
@@ -305,7 +305,7 @@ set_or_update_bashrc_variable() {
 
     local var_name="$1"
     local value="$2"
-    local bashrc_file="~/.bashrc"
+    local bashrc_file="$HOME/.bashrc"
     local temp_file="${bashrc_file}.tmp"
 
     # Check if the variable exists in .bashrc
@@ -329,7 +329,7 @@ set_or_update_bashrc_alias() {
 
     local alias_name="$1"
     local alias_command="$2"
-    local bashrc_file="~/.bashrc"
+    local bashrc_file="$HOME/.bashrc"
     local temp_file="$(mktemp)"
     local alias_line="alias $alias_name='$alias_command'"
     local found=false
@@ -369,10 +369,10 @@ set_termux_properties() {
 
     local KEY="${1//\"/}"  # Remove any surrounding quotes
     local VALUE="${2//\"/}" # Remove any surrounding quotes
-    local PROPERTIES_FILE="~/.termux/termux.properties"
+    local PROPERTIES_FILE="$HOME/.termux/termux.properties"
     
     # Silent directory and file creation
-    mkdir -p ~/.termux 2>/dev/null || return 1
+    mkdir -p $HOME/.termux 2>/dev/null || return 1
     touch "$PROPERTIES_FILE" 2>/dev/null || return 1
 
     # Handle empty value (comment out the key)
@@ -510,7 +510,7 @@ while true; do
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "fluxbox & aterm"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             set_termux_properties "fullscreen" "true"
-                            if [ ! -f ~/.fluxbox/menu ]; then
+                            if [ ! -f $HOME/.fluxbox/menu ]; then
                                 fluxbox-generate_menu
                             fi
                             echo "Fluxbox installed. Run 'startx11' to start."
@@ -522,9 +522,9 @@ while true; do
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session"
                             set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             set_termux_properties "fullscreen" "true"
-                            mkdir -p ~/.config/openbox
-                            cp -n $PREFIX/etc/xdg/openbox/* ~/.config/openbox/
-                            chmod +x ~/.config/openbox/autostart
+                            mkdir -p $HOME/.config/openbox
+                            cp -n $PREFIX/etc/xdg/openbox/* $HOME/.config/openbox/
+                            chmod +x $HOME/.config/openbox/autostart
                             AUTOSTART_LINES=(
                                 "# start aterm terminal"
                                 "aterm &"
@@ -532,10 +532,10 @@ while true; do
                                 "# set backgroud color"
                                 "xsetroot -solid black &"
                             )
-                            if [ ! -f "~/.config/openbox/autostart" ] || ! grep -q "xsetroot -solid black" "~/.config/openbox/autostart"; then
+                            if [ ! -f "$HOME/.config/openbox/autostart" ] || ! grep -q "xsetroot -solid black" "$HOME/.config/openbox/autostart"; then
                                 # Add the lines to the file
-                                printf "%s\n" "${AUTOSTART_LINES[@]}" >> "~/.config/openbox/autostart"
-                                echo "Added lines to ~/.config/openbox/autostart"
+                                printf "%s\n" "${AUTOSTART_LINES[@]}" >> "$HOME/.config/openbox/autostart"
+                                echo "Added lines to $HOME/.config/openbox/autostart"
                             fi
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
@@ -592,8 +592,8 @@ while true; do
             pkg update -y
             install_if_missing proot-distro ldd liblzma openssl which tree mtd-utils lzop sleuthkit cabextract p7zip lhasa arj cmake rust git wget nodejs autoconf automake python-pip python-pillow python-scipy ninja patchelf binutils bison flex build-essential
             npm install -g degit
-            [ ! -f ~/.bashrc ] && touch ~/.bashrc
-            echo 'export PATH="$PATH:~/.cargo/bin:/system/bin"
+            [ ! -f $HOME/.bashrc ] && touch $HOME/.bashrc
+            echo 'export PATH="$PATH:$HOME/.cargo/bin:/system/bin"
             export CFLAGS="-Wno-deprecated-declarations -Wno-unreachable-code"
             export LD_LIBRARY_PATH="$PREFIX/lib"
             AR="llvm-ar"
@@ -604,8 +604,8 @@ while true; do
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib"
             fi
             # Linux file system layout
-            termux-chroot' >> ~/.bashrc
-            source ~/.bashrc
+            termux-chroot' >> $HOME/.bashrc
+            source $HOME/.bashrc
             echo "Environment setup complete"
             read -p "Press Enter to return to main menu"
             ;;
