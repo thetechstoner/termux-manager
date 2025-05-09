@@ -123,7 +123,7 @@ install_if_missing() {
 
     # Common package mappings
     declare -A common_pkg_map=(
-        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt feh xorg-xsetroot xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
+        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt feh xorg-xsetroot xdotool wmctrl xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
         ["glibc"]="glibc"
         ["tur"]="gcc-12 llvm"
         ["root"]="tsu"
@@ -520,14 +520,14 @@ while true; do
                         2)
                             install_if_missing openbox obconf-qt feh xorg-xsetroot aterm
                             set_or_update_bashrc_variable "TERMUX_X11_XSTARTUP" "openbox-session"
-                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
+                            set_or_update_bashrc_alias "startx11" "termux-x11 :1 -dpi 160 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity"
                             set_termux_properties "fullscreen" "true"
                             mkdir -p $HOME/.config/openbox
                             cp -n $PREFIX/etc/xdg/openbox/* $HOME/.config/openbox/
                             chmod +x $HOME/.config/openbox/autostart
                             AUTOSTART_LINES=(
                                 "# start aterm terminal"
-                                "aterm &"
+                                "aterm -fg white -bg black -sh 60 +sb -tn xterm-256color &"
                                 ""
                                 "# set backgroud color"
                                 "xsetroot -solid black &"
@@ -536,6 +536,18 @@ while true; do
                                 # Add the lines to the file
                                 printf "%s\n" "${AUTOSTART_LINES[@]}" >> "$HOME/.config/openbox/autostart"
                                 echo "Added lines to $HOME/.config/openbox/autostart"
+                            fi
+                            file="$HOME/.config/openbox/rc.xml"
+                            if ! grep -qzP '\n\s*<application class="\*" name="\*" title="\*">\n\s*<maximized>yes</maximized>\n\s*</application>' "$file"; then
+                                sed -i -E '/^[[:space:]]*<applications>$/ {
+                                    p
+                                    s/<applications>/<application class="*" name="*" title="*">/
+                                    p
+                                    s/<application.*/<maximized>yes<\/maximized>/
+                                    p
+                                    s/<maximized.*/<\/application>/
+                                }' "$file"
+                                echo "openbox rule added to rc.xml"
                             fi
                             echo "Openbox installed. Run 'startx11' to start."
                             read -p "Press Enter to start Openbox Window Manager"
@@ -668,6 +680,40 @@ apt uses:
 $PREFIX/etc/apt/sources.list.d/
 $PREFIX/etc/apt/sources.list
 
+Termux X-server add-on:
+https://github.com/termux/termux-x11
+
+termux-x11 touchpad emulation gestures:
+Tap for click
+Double tap for double click
+Two-finger tap for right click
+Three-finger tap for middle click
+Two-finger vertical swipe for vertical scroll
+Two-finger horizontal swipe for horizontal scroll
+Three-finger swipe down to show-hide additional keys bar.
+
+termux-x11 touchscreen mode gestures:
+Single tap for left button click.
+Long tap for mouse holding.
+Double tap for double click
+Two-finger tap for right click
+Three-finger tap for middle click
+Two-finger vertical swipe for vertical scroll
+Two-finger horizontal swipe for horizontal scroll
+Three-finger swipe down to show-hide additional keys bar.
+
+Remote Access - Termux Wiki
+https://wiki.termux.com/wiki/Remote_Access
+
+Bypassing NAT - Termux Wiki
+https://wiki.termux.com/wiki/Bypassing_NAT
+
+Termux-services - Termux Wiki
+https://wiki.termux.com/wiki/Termux-services
+
+Termux:Boot - Termux Wiki
+https://wiki.termux.com/wiki/Termux:Boot
+
 Development
 https://wiki.termux.com/wiki/Development
 
@@ -694,18 +740,6 @@ https://service.termux-pacman.dev/
 
 AUR - Termux Wiki
 https://wiki.termux.com/wiki/AUR
-
-Remote Access - Termux Wiki
-https://wiki.termux.com/wiki/Remote_Access
-
-Bypassing NAT - Termux Wiki
-https://wiki.termux.com/wiki/Bypassing_NAT
-
-Termux-services - Termux Wiki
-https://wiki.termux.com/wiki/Termux-services
-
-Termux:Boot - Termux Wiki
-https://wiki.termux.com/wiki/Termux:Boot
 
 archiconda3: Light-weight Anaconda environment (ARM64)
 https://github.com/piyoki/archiconda3
