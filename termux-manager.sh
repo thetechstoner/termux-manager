@@ -123,7 +123,7 @@ install_if_missing() {
 
     # Common package mappings
     declare -A common_pkg_map=(
-        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt feh xorg-xsetroot xdotool wmctrl xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal"
+        ["x11"]="termux-x11-nightly aterm xorg-twm fluxbox openbox obconf-qt feh xorg-xsetroot xdotool wmctrl xfce4 xfce4-terminal xfce4-goodies lxqt qterminal mate-desktop mate-terminal zenity"
         ["glibc"]="glibc"
         ["tur"]="gcc-12 llvm"
         ["root"]="tsu"
@@ -451,14 +451,14 @@ while true; do
     case $choice in
         1)
             check_storage
-            tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
+            tar --exclude='.cache' -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
             echo "termux restore complete"
             echo "will close in 5 seconds. reopen termux to finish setup." && sleep 5
             exit
             ;;
         2)
             check_storage
-            tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+            tar --exclude='.cache' -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
             echo "termux backup complete"
             read -p "Press Enter to return to main menu"
             ;;
@@ -497,6 +497,8 @@ while true; do
             echo "Choose option:"
             echo "1) Window Manager (Fluxbox or Openbox)"
             echo "2) Desktop environment (XFCE, LXQt or MATE)"
+            echo "3) Install zenity"
+            echo "4) Install python-tkinter & PySimpleGUI"
             read -p "Enter number of option: " option
             case $option in
                 1)
@@ -593,6 +595,13 @@ while true; do
                             termux-x11 :1 & sleep 2 && am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
                             ;;
                     esac
+                    ;;
+                3)
+                    install_if_missing abseil-cpp adwaita-icon-theme adwaita-icon-theme-legacy appstream aspell at-spi2-core abseil-cpp brotli clang dbus desktop-file-utils enchant fontconfig freetype fribidi game-music-emu gdbm gdk-pixbuf giflib glib glib-networking graphene gst-plugins-bad gst-plugins-base gst-plugins-good gstreamer gtk-update-icon-cache gtk3 gtk4 harfbuzz harfbuzz-icu hicolor-icon-theme hunspell hunspell-en-us imlib2 iso-codes libadwaita libandroid-execinfo libandroid-posix-semaphore libandroid-shmem libaom libass libcaca libcairo libcompiler-rt libcrypt libdav1d libde265 libdrm libepoxy libexpat libffi libflac libglvnd libgraphite libheif libhyphen libice libicu libid3tag libjpeg-turbo libjxl libllvm libltdl liblzo libmp3lame libogg libopus libpixman libpng libpsl librav1e librsvg libsm libsndfile libsoup3 libsoxr libsqlite libsrt libstemmer libtasn1 libtheora libtiff libuuid libvorbis libvpx libwayland libwebp libwebrtc-audio-processing libx11 libx265 libxau libxcb libxcomposite libxcursor libxdamage libxdmcp libxext libxfixes libxft libxi libxinerama libxkbcommon libxml2 libxmlb libxmu libxrandr libxrender libxshmfence libxslt libxt libxtst libxv libxxf86vm libyaml littlecms lld llvm make mesa mesa-vulkan-icd-swrast mpg123 ncurses-ui-libs ndk-sysroot openal-soft opengl openh264 openjpeg pango pkg-config pulseaudio python python-ensurepip-wheels python-pip shared-mime-info speexdsp ttf-dejavu vulkan-icd vulkan-loader vulkan-loader-generic webkitgtk-6.0 woff2 xkeyboard-config xorg-xauth zenity
+                    ;;
+                4)
+                    install_if_missing brotli clang fontconfig freetype gdbm glib libandroid-posix-semaphore libcompiler-rt libcrypt libexpat libffi libllvm libpng libsqlite libx11 libxau libxcb libxdmcp libxext libxft libxml2 libxrender libxss lld llvm make ncurses ncurses-ui-libs ndk-sysroot pkg-config python python-ensurepip-wheels python-pip python-tkinter tcl tk ttf-dejavu
+                    pip install pysimplegui
                     ;;
                 *)
                     echo "Invalid option"
