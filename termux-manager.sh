@@ -748,11 +748,4 @@ https://wiki.termux.com/wiki/AUR
 archiconda3: Light-weight Anaconda environment (ARM64)
 https://github.com/piyoki/archiconda3
 
-# build & install binwalk in termux
-npx degit github:ReFirmLabs/binwalk binwalk --force
-cd binwalk
-cargo build --release
-cargo install --path .
-cd .. && rm -rf binwalk/
-binwalk --version
 '
