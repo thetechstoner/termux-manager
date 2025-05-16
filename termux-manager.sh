@@ -746,7 +746,15 @@ https://service.termux-pacman.dev/
 AUR - Termux Wiki
 https://wiki.termux.com/wiki/AUR
 
+# build & install binwalk in termux
+Firmware & entropy Analysis Tool
+supports variety of file/data types.
+customize/integrate in Rust projects.
+identify/extract files & data embedded in files.
+identify unknown compression/encryption
+# first run Setup Build Environment
+cargo install binwalk
+
 archiconda3: Light-weight Anaconda environment (ARM64)
 https://github.com/piyoki/archiconda3
-
 '
