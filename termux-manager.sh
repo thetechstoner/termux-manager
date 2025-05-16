@@ -606,23 +606,22 @@ while true; do
             read -p "Press Enter to return to main menu"
             ;;
         5)
-            pkg update -y
             install_if_missing proot-distro ldd liblzma openssl which tree mtd-utils lzop sleuthkit cabextract p7zip lhasa arj cmake rust git wget nodejs autoconf automake python-pip python-pillow python-scipy ninja patchelf binutils bison flex build-essential
             npm install -g degit
-            [ ! -f $HOME/.bashrc ] && touch $HOME/.bashrc
-            echo 'export PATH="$PATH:$HOME/.cargo/bin:/system/bin"
-            export CFLAGS="-Wno-deprecated-declarations -Wno-unreachable-code"
-            export LD_LIBRARY_PATH="$PREFIX/lib"
-            AR="llvm-ar"
-            if [ "$(uname -m)" == "x86_64" ] || [ "$(uname -m)" == "aarch64" ]; then
-            export LDFLAGS="-L/system/lib64"
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib64"
-            else
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib"
-            fi
-            # Linux file system layout
-            termux-chroot' >> $HOME/.bashrc
-            source $HOME/.bashrc
+            [ ! -f "$HOME/.bashrc" ] && touch "$HOME/.bashrc"
+            cat <<'EOF' >> "$HOME/.bashrc"
+export PATH="$PATH:$HOME/.cargo/bin:/system/bin"
+export CFLAGS="-Wno-deprecated-declarations -Wno-unreachable-code"
+export LD_LIBRARY_PATH="$PREFIX/lib"            
+export AR="llvm-ar"
+if [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "aarch64" ]; then
+export LDFLAGS="-L/system/lib64"            
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib64"
+else
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib"
+fi
+EOF
+            source "$HOME/.bashrc"
             echo "Environment setup complete"
             read -p "Press Enter to return to main menu"
             ;;
