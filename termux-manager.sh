@@ -608,6 +608,7 @@ while true; do
         5)
             install_if_missing proot-distro ldd liblzma openssl which tree mtd-utils lzop sleuthkit cabextract p7zip lhasa arj cmake rust git wget nodejs autoconf automake python-pip python-pillow python-scipy ninja patchelf binutils bison flex build-essential
             npm install -g degit
+            mkdir -p "$HOME/.cargo/bin"
             [ ! -f "$HOME/.bashrc" ] && touch "$HOME/.bashrc"
             cat <<'EOF' >> "$HOME/.bashrc"
 export PATH="$PATH:$HOME/.cargo/bin:/system/bin"
