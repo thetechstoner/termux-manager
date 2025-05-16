@@ -497,8 +497,7 @@ while true; do
             echo "Choose option:"
             echo "1) Window Manager (Fluxbox or Openbox)"
             echo "2) Desktop environment (XFCE, LXQt or MATE)"
-            echo "3) Install zenity"
-            echo "4) Install python-tkinter & PySimpleGUI"
+            echo "3) Install zenity,python-tkinter & pysimplegui"
             read -p "Enter number of option: " option
             case $option in
                 1)
@@ -597,10 +596,7 @@ while true; do
                     esac
                     ;;
                 3)
-                    install_if_missing abseil-cpp adwaita-icon-theme adwaita-icon-theme-legacy appstream aspell at-spi2-core abseil-cpp brotli clang dbus desktop-file-utils enchant fontconfig freetype fribidi game-music-emu gdbm gdk-pixbuf giflib glib glib-networking graphene gst-plugins-bad gst-plugins-base gst-plugins-good gstreamer gtk-update-icon-cache gtk3 gtk4 harfbuzz harfbuzz-icu hicolor-icon-theme hunspell hunspell-en-us imlib2 iso-codes libadwaita libandroid-execinfo libandroid-posix-semaphore libandroid-shmem libaom libass libcaca libcairo libcompiler-rt libcrypt libdav1d libde265 libdrm libepoxy libexpat libffi libflac libglvnd libgraphite libheif libhyphen libice libicu libid3tag libjpeg-turbo libjxl libllvm libltdl liblzo libmp3lame libogg libopus libpixman libpng libpsl librav1e librsvg libsm libsndfile libsoup3 libsoxr libsqlite libsrt libstemmer libtasn1 libtheora libtiff libuuid libvorbis libvpx libwayland libwebp libwebrtc-audio-processing libx11 libx265 libxau libxcb libxcomposite libxcursor libxdamage libxdmcp libxext libxfixes libxft libxi libxinerama libxkbcommon libxml2 libxmlb libxmu libxrandr libxrender libxshmfence libxslt libxt libxtst libxv libxxf86vm libyaml littlecms lld llvm make mesa mesa-vulkan-icd-swrast mpg123 ncurses-ui-libs ndk-sysroot openal-soft opengl openh264 openjpeg pango pkg-config pulseaudio python python-ensurepip-wheels python-pip shared-mime-info speexdsp ttf-dejavu vulkan-icd vulkan-loader vulkan-loader-generic webkitgtk-6.0 woff2 xkeyboard-config xorg-xauth zenity
-                    ;;
-                4)
-                    install_if_missing brotli clang fontconfig freetype gdbm glib libandroid-posix-semaphore libcompiler-rt libcrypt libexpat libffi libllvm libpng libsqlite libx11 libxau libxcb libxdmcp libxext libxft libxml2 libxrender libxss lld llvm make ncurses ncurses-ui-libs ndk-sysroot pkg-config python python-ensurepip-wheels python-pip python-tkinter tcl tk ttf-dejavu
+                    install_if_missing abseil-cpp adwaita-icon-theme adwaita-icon-theme-legacy appstream aspell at-spi2-core abseil-cpp brotli clang dbus desktop-file-utils enchant fontconfig freetype fribidi game-music-emu gdbm gdk-pixbuf giflib glib glib-networking graphene gst-plugins-bad gst-plugins-base gst-plugins-good gstreamer gtk-update-icon-cache gtk3 gtk4 harfbuzz harfbuzz-icu hicolor-icon-theme hunspell hunspell-en-us imlib2 iso-codes libadwaita libandroid-execinfo libandroid-posix-semaphore libandroid-shmem libaom libass libcaca libcairo libcompiler-rt libcrypt libdav1d libde265 libdrm libepoxy libexpat libffi libflac libglvnd libgraphite libheif libhyphen libice libicu libid3tag libjpeg-turbo libjxl libllvm libltdl liblzo libmp3lame libogg libopus libpixman libpng libpsl librav1e librsvg libsm libsndfile libsoup3 libsoxr libsqlite libsrt libstemmer libtasn1 libtheora libtiff libuuid libvorbis libvpx libwayland libwebp libwebrtc-audio-processing libx11 libx265 libxau libxcb libxcomposite libxcursor libxdamage libxdmcp libxext libxfixes libxft libxi libxinerama libxkbcommon libxml2 libxmlb libxmu libxrandr libxrender libxshmfence libxslt libxss libxt libxtst libxv libxxf86vm libyaml littlecms lld llvm make mesa mesa-vulkan-icd-swrast mpg123 ncurses ncurses-ui-libs ndk-sysroot openal-soft opengl openh264 openjpeg pango pkg-config pulseaudio python python-ensurepip-wheels python-pip python-tkinter shared-mime-info speexdsp tcl tk ttf-dejavu vulkan-icd vulkan-loader vulkan-loader-generic webkitgtk-6.0 woff2 xkeyboard-config xorg-xauth zenity
                     pip install pysimplegui
                     ;;
                 *)
